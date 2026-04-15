@@ -15,16 +15,17 @@ const Dashboard = () => {
   const [text, setText] = useState("");
   const [filter, setFilter] = useState("all");
 
+  // ✅ NEW: action loading (for single item)
+  const [actionId, setActionId] = useState(null);
+
   useEffect(() => {
     dispatch(fetchTodos());
   }, []);
 
-  // ✅ Handle input
   const handleChange = (e) => {
     setText(e.target.value);
   };
 
-  // ✅ Add Todo
   const handleAddTodo = () => {
     if (!text.trim()) return;
 
@@ -32,22 +33,27 @@ const Dashboard = () => {
     setText("");
   };
 
-  // ✅ Toggle
-  const handleToggle = (todo) => {
-    dispatch(
+  const handleToggle = async (todo) => {
+    setActionId(todo._id);
+
+    await dispatch(
       updateTodo({
         id: todo._id,
         data: { completed: !todo.completed },
       })
     );
+
+    setActionId(null);
   };
 
-  // ✅ Delete
-  const handleDelete = (id) => {
-    dispatch(deleteTodo(id));
+  const handleDelete = async (id) => {
+    setActionId(id);
+
+    await dispatch(deleteTodo(id));
+
+    setActionId(null);
   };
 
-  // ✅ Filter
   const filtered = tasks.filter((t) => {
     if (filter === "Completed") return t.completed;
     if (filter === "Pending") return !t.completed;
@@ -58,12 +64,11 @@ const Dashboard = () => {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-2xl mx-auto p-6">
 
-        {/* Title */}
         <h1 className="text-3xl font-bold text-green-400 mb-6 text-center">
           Todo Dashboard
         </h1>
 
-        {/* 🔥 Add Todo (FORM ENABLED ENTER KEY) */}
+        {/* Add Todo */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -81,10 +86,11 @@ const Dashboard = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`px-4 rounded-lg font-semibold flex items-center justify-center ${loading
-              ? "bg-green-300 cursor-not-allowed"
-              : "bg-green-500 hover:bg-green-600 text-black"
-              }`}
+            className={`px-4 rounded-lg font-semibold flex items-center justify-center ${
+              loading
+                ? "bg-green-300 cursor-not-allowed"
+                : "bg-green-500 hover:bg-green-600 text-black"
+            }`}
           >
             {loading ? (
               <LoaderCircle className="animate-spin" size={18} />
@@ -100,63 +106,60 @@ const Dashboard = () => {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-1 rounded-full ${filter === f
-                ? "bg-green-500 text-black"
-                : "bg-zinc-800 text-gray-300"
-                }`}
+              className={`px-4 py-1 rounded-full ${
+                filter === f
+                  ? "bg-green-500 text-black"
+                  : "bg-zinc-800 text-gray-300"
+              }`}
             >
               {f}
             </button>
           ))}
         </div>
 
-        {/* Loading */}
+        {/* Global Loading */}
         {loading && tasks.length === 0 && (
           <p className="text-center text-gray-400">Loading...</p>
         )}
 
-        {/* Empty State */}
+        {/* Empty */}
         {!loading && filtered.length === 0 && (
-          <div className="text-center mt-10 text-gray-400">
-            <p className="text-sm">
-              {filter === "all"
-                ? "Start by adding your first task 🚀"
-                : `No ${filter} tasks available`}
-            </p>
-          </div>
+          <p className="text-center text-gray-400 mt-10">
+            No tasks available
+          </p>
         )}
 
-        {/* Todo List */}
+        {/* List */}
         <div className="space-y-3">
           {filtered.map((todo) => (
             <div
               key={todo._id}
               className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800"
             >
-              {/* Text */}
               <span
                 onClick={() => handleToggle(todo)}
-                className={`cursor-pointer flex-1 ${todo.completed
-                  ? "line-through text-gray-500"
-                  : "text-white"
-                  }`}
+                className={`cursor-pointer flex-1 ${
+                  todo.completed
+                    ? "line-through text-gray-500"
+                    : "text-white"
+                }`}
               >
                 {todo.text}
               </span>
 
-              {/* Actions */}
               <div className="flex items-center gap-3">
 
                 {/* Toggle */}
                 <button
-                  disabled={loading}
+                  disabled={actionId === todo._id}
                   onClick={() => handleToggle(todo)}
-                  className={`px-3 py-1 rounded text-sm flex items-center justify-center ${todo.completed
-                    ? "bg-yellow-500 text-black"
-                    : "bg-green-500 text-black"
-                    }`}
+                  className={`px-3 py-1 rounded text-sm flex items-center justify-center ${
+                    todo.completed
+                      ? "bg-yellow-500 text-black"
+                      : "bg-green-500 text-black"
+                  }`}
                 >
-                  {loading ? (
+                  {actionId === todo._id ? (
                     <LoaderCircle className="animate-spin" size={14} />
                   ) : todo.completed ? (
                     "Undo"
@@ -167,11 +170,11 @@ const Dashboard = () => {
 
                 {/* Delete */}
                 <button
-                  disabled={loading}
+                  disabled={actionId === todo._id}
                   onClick={() => handleDelete(todo._id)}
-                  className="text-red-400 hover:text-red-600 flex items-center justify-center"
+                  className="text-red-400 hover:text-red-600"
                 >
-                  {loading ? (
+                  {actionId === todo._id ? (
                     <LoaderCircle className="animate-spin" size={16} />
                   ) : (
                     "✕"
